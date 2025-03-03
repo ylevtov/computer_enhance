@@ -56,10 +56,14 @@ def checkInstruction(instruction):
         case '1011':
             w = instruction[4]
             reg = instruction[5:8]
-            # match w:
-            #     case '0':
-            data = instruction[8:]
-            print(f'decodeInst4 w {w}, reg {reg}, data {data}')
+            match w:
+                case '0':
+                    data = getNextChunk(8)
+                case '1':
+                    dataLSB = getNextChunk(8)
+                    dataMSB = getNextChunk(8)
+                    data = dataMSB+dataLSB
+            # print(f'decodeInst4 w {w}, reg {reg}, data {data}')
             decodeInstruction4(opcode, w, reg, data)
     opcode = instruction[0:6]
     match opcode:
@@ -71,14 +75,9 @@ def checkInstruction(instruction):
             reg = second_byte[2:5]
             rm = second_byte[5:8]
             print(f'mov {getRegister(rm, w).lower()}, {getRegister(reg, w).lower()}')
-    return True
 
 def decodeInstruction4(opcode, w, reg, data):
-    match w:
-        case '0':
-            print(f'mov {getRegister(reg, w).lower()}, {int(data, 2)}')
-        case '1':
-            print(f'mov {getRegister(reg, w).lower()}, {int(data, 2)}')
+    print(f'mov {getRegister(reg, w).lower()}, {int(data, 2)}')
 
 def decodeInstruction6(opcode, d, w, mod, reg, rm):
     match opcode:
@@ -94,10 +93,8 @@ def decodeInstruction6(opcode, d, w, mod, reg, rm):
 
 def getNextChunk(chunk_size):
     global binary_representation
-    # print(f'get len bef {len(binary_representation)}')
     next_chunk = binary_representation[0:chunk_size]
     binary_representation = binary_representation[chunk_size:]
-    # print(f'get len aft {len(binary_representation)}')
     return next_chunk
 
 def checkNextChunk():
