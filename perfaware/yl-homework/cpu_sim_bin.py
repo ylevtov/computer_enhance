@@ -67,10 +67,10 @@ def checkInstruction(instruction):
         case '100010':
             d = instruction[6]
             w = instruction[7]
-            mod = instruction[8:10]
-            reg = instruction[10:13]
-            rm = instruction[13:16]
-            data = instruction[8:]
+            second_byte = getNextChunk(8)
+            mod = second_byte[0:2]
+            reg = second_byte[2:5]
+            rm = second_byte[5:8]
             print(f'mov {getRegister(rm, w).lower()} {getRegister(reg, w).lower()}')
             return
 
@@ -91,13 +91,23 @@ def decodeInstruction6(opcode, d, w, mod, reg, rm):
             print(f'')
             return "Something's wrong with the internet"
 
+# binary_representation = ""
+
+def getNextChunk(chunk_size):
+    global binary_representation
+    next_chunk = binary_representation[0:chunk_size]
+    binary_representation = binary_representation[chunk_size:]
+    return next_chunk
+
 with open(sys.argv[1], 'rb') as file:
     data = file.read()
     binary_representation = ''.join(format(byte, '08b') for byte in data)
     # print(binary_representation)
-    chunk_size = 16
-    binary_chunks = [binary_representation[i:i+chunk_size] for i in range(0, len(binary_representation), chunk_size)]
+    chunk_size = 8
+    next_chunk = getNextChunk(chunk_size)
+    checkInstruction(next_chunk)
+    # binary_chunks = [binary_representation[i:i+chunk_size] for i in range(0, len(binary_representation), chunk_size)]
 
-    for instruction in binary_chunks:
+    # for instruction in binary_chunks:
         # print(f"Instruction: {instruction}")
-        checkInstruction(instruction)
+        # checkInstruction(instruction)
