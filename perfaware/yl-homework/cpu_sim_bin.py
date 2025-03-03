@@ -61,7 +61,6 @@ def checkInstruction(instruction):
             data = instruction[8:]
             print(f'decodeInst4 w {w}, reg {reg}, data {data}')
             decodeInstruction4(opcode, w, reg, data)
-            return
     opcode = instruction[0:6]
     match opcode:
         case '100010':
@@ -72,7 +71,7 @@ def checkInstruction(instruction):
             reg = second_byte[2:5]
             rm = second_byte[5:8]
             print(f'mov {getRegister(rm, w).lower()} {getRegister(reg, w).lower()}')
-            return
+    return True
 
 def decodeInstruction4(opcode, w, reg, data):
     match w:
@@ -84,7 +83,7 @@ def decodeInstruction4(opcode, w, reg, data):
 def decodeInstruction6(opcode, d, w, mod, reg, rm):
     match opcode:
         case '100010':
-            #print(f'register {getRegister(reg, w)}')
+            # print(f'register {getRegister(reg, w)}')
             print(f'mov {getRegister(rm, w).lower()} {getRegister(reg, w).lower()}')
             return "Register/memory to/from memory"
         case _: 
@@ -99,13 +98,23 @@ def getNextChunk(chunk_size):
     binary_representation = binary_representation[chunk_size:]
     return next_chunk
 
+def checkNextChunk():
+    global binary_representation
+    # print(f'checking next_chunk')
+    if (len(binary_representation) > 8):
+        next_chunk = getNextChunk(8)
+        checkInstruction(next_chunk)
+
 with open(sys.argv[1], 'rb') as file:
     data = file.read()
     binary_representation = ''.join(format(byte, '08b') for byte in data)
     # print(binary_representation)
     chunk_size = 8
     next_chunk = getNextChunk(chunk_size)
-    checkInstruction(next_chunk)
+    # print(f'processed {processed_instruction}')
+    while (checkInstruction(next_chunk) == True):
+        checkNextChunk()
+
     # binary_chunks = [binary_representation[i:i+chunk_size] for i in range(0, len(binary_representation), chunk_size)]
 
     # for instruction in binary_chunks:
