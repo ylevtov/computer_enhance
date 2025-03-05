@@ -147,7 +147,7 @@ def decodeRegMemToFromRegMem(d, w, second_byte):
         case '00':
             match d:
                 case '0':
-                    print(f'mov00 {getRegisterMod(**kwargs).lower()}, {getRegister(rm, w).lower()}')
+                    print(f'mov00 {getRegisterMod(**kwargs).lower()}, {getRegister(reg, w).lower()}')
                 case '1':
                     print(f'mov00 {getRegister(rm, w).lower()}, {getRegisterMod(**kwargs).lower()}')
 
