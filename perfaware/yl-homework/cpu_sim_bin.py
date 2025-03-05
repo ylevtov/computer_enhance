@@ -10,23 +10,29 @@ def getRegisterMod(**kwargs):
             return getEffectiveAddress(rm)
         case '01':
             disp_lo = kwargs["disp_lo"]
-            return getEffectiveAddress(rm, disp_lo)
+            return getEffectiveAddress(rm, disp_lo, "", w)
         case '10':
             disp_lo = kwargs["disp_lo"]
             disp_hi = kwargs["disp_hi"]
-            return getEffectiveAddress(rm, disp_lo, disp_hi)
+            return getEffectiveAddress(rm, disp_lo, disp_hi, w)
         case '11':
             return getRegister(reg, w)
 
-def getEffectiveAddress(rm, disp_lo="", disp_hi=""):
+def getEffectiveAddress(rm, disp_lo="", disp_hi="", w=""):
     disp_int = 0
     displacement = ""
     if (disp_hi):
         disp_int = int(disp_hi+disp_lo, 2)
+        if (w == "1"):
+            disp_int -= int("1111111111111111", 2) + 1
     elif (disp_lo):
         disp_int = int(disp_lo, 2)
+        if (w == "1"):
+            disp_int -= int("11111111", 2) + 1
     if (disp_int > 0):
         displacement = f" + {disp_int}"
+    elif (disp_int < 0):
+        displacement = f" - {abs(disp_int)}"
 
     match rm:
         case '000':
@@ -107,6 +113,7 @@ def checkInstruction(instruction):
             d = instruction[6]
             w = instruction[7]
             second_byte = getNextChunk(8)
+            # print(f'{instruction} {second_byte}')
             decodeRegMemToFromRegMem(d, w, second_byte)
             # print(f'mov {getRegister(rm, w).lower()}, {getRegister(reg, w).lower()}')
 
@@ -141,7 +148,7 @@ def decodeRegMemToFromRegMem(d, w, second_byte):
             kwargs["disp_hi"] = disp_hi
             match d:
                 case '0':
-                    print(f'mov {getRegisterMod(**kwargs).lower(), {getRegister(rm, w).lower()}}')
+                    print(f'mov 149 {getRegisterMod(**kwargs).lower()}, {getRegister(reg, w).lower()}')
                 case '1':
                     print(f'mov {getRegister(rm, w).lower()}, {getRegisterMod(**kwargs).lower()}')
         case '00':
