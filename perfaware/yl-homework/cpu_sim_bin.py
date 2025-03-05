@@ -1,15 +1,50 @@
 import sys
 
-def getRegisterMod(mod, reg, w):
+def getRegisterMod(**kwargs):
+    mod = kwargs["mod"]
+    reg = kwargs["reg"]
+    w = kwargs["w"]
+    rm = kwargs["rm"]
     match mod:
         case '00':
-            return "mod00"
+            return getEffectiveAddress(rm)
         case '01':
-            return "mod01"
+            disp_lo = kwargs["disp_lo"]
+            return getEffectiveAddress(rm, disp_lo)
         case '10':
-            return "mod10"
+            disp_lo = kwargs["disp_lo"]
+            disp_hi = kwargs["disp_hi"]
+            return getEffectiveAddress(rm, disp_lo, disp_hi)
         case '11':
             return getRegister(reg, w)
+
+def getEffectiveAddress(rm, disp_lo="", disp_hi=""):
+    disp_int = 0
+    displacement = ""
+    if (disp_hi):
+        disp_int = int(disp_hi+disp_lo, 2)
+    elif (disp_lo):
+        disp_int = int(disp_lo, 2)
+    if (disp_int > 0):
+        displacement = f" + {disp_int}"
+
+    match rm:
+        case '000':
+            return f'[BX + SI{displacement}]'
+        case '001':
+            return f'[BX + DI{displacement}]'
+        case '010':
+            return f'[BP + SI{displacement}]'
+        case '011':
+            return f'[BP + DI{displacement}]'
+        case '100':
+            return f'[SI{displacement}]'
+        case '101':
+            return f'[DI{displacement}]'
+        case '110':
+            return f'[BP{displacement}]'
+        case '111':
+            return f'[BX{displacement}]'
 
 def getRegister(reg, w):
     match w:
@@ -51,6 +86,7 @@ def getRegister(reg, w):
                     return 'DI'
 
 def checkInstruction(instruction):
+    # print(f'checking instruction {instruction}')
     opcode = instruction[0:4]
     match opcode:
         case '1011':
@@ -71,23 +107,49 @@ def checkInstruction(instruction):
             d = instruction[6]
             w = instruction[7]
             second_byte = getNextChunk(8)
-            mod = second_byte[0:2]
-            reg = second_byte[2:5]
-            rm = second_byte[5:8]
-            print(f'mov {getRegister(rm, w).lower()}, {getRegister(reg, w).lower()}')
+            decodeRegMemToFromRegMem(d, w, second_byte)
+            # print(f'mov {getRegister(rm, w).lower()}, {getRegister(reg, w).lower()}')
 
 def decodeInstruction4(opcode, w, reg, data):
     print(f'mov {getRegister(reg, w).lower()}, {int(data, 2)}')
 
-def decodeInstruction6(opcode, d, w, mod, reg, rm):
-    match opcode:
-        case '100010':
-            # print(f'register {getRegister(reg, w)}')
-            print(f'mov {getRegister(rm, w).lower()} {getRegister(reg, w).lower()}')
-            return "Register/memory to/from memory"
-        case _: 
-            print(f'')
-            return "Something's wrong with the internet"
+def decodeRegMemToFromRegMem(d, w, second_byte):
+    mod = second_byte[0:2]
+    reg = second_byte[2:5]
+    rm = second_byte[5:8]
+    kwargs = {"mod":mod, "reg":reg, "rm":rm, "w":w}
+    # print(f'd {d}, w {w}, mod {mod}, reg {reg}, rm {rm}')
+    match mod:
+        case '11':
+            match d:
+                case '0':
+                    print(f'mov {getRegister(rm, w).lower()}, {getRegister(reg, w).lower()}')
+                case '1':
+                    print(f'mov {getRegister(reg, w).lower()}, {getRegister(rm, w).lower()}')
+        case '01':
+            disp_lo = getNextChunk(8)
+            kwargs["disp_lo"] = disp_lo
+            match d:
+                case '0':
+                    print(f'mov {getRegisterMod(**kwargs).lower()}, {getRegister(reg, w).lower()}')
+                case '1':
+                    print(f'mov {getRegister(reg, w).lower()}, {getRegisterMod(**kwargs).lower()}')
+        case '10':
+            disp_lo = getNextChunk(8)
+            disp_hi = getNextChunk(8)
+            kwargs["disp_lo"] = disp_lo
+            kwargs["disp_hi"] = disp_hi
+            match d:
+                case '0':
+                    print(f'mov {getRegisterMod(**kwargs).lower(), {getRegister(rm, w).lower()}}')
+                case '1':
+                    print(f'mov {getRegister(rm, w).lower()}, {getRegisterMod(**kwargs).lower()}')
+        case '00':
+            match d:
+                case '0':
+                    print(f'mov00 {getRegisterMod(**kwargs).lower()}, {getRegister(rm, w).lower()}')
+                case '1':
+                    print(f'mov00 {getRegister(rm, w).lower()}, {getRegisterMod(**kwargs).lower()}')
 
 # binary_representation = ""
 
@@ -99,21 +161,19 @@ def getNextChunk(chunk_size):
 
 def checkNextChunk():
     global binary_representation
-    # print(f'checking next_chunk')
+    # print(f'checking next_chunk from {binary_representation}')
     next_chunk = getNextChunk(8)
     checkInstruction(next_chunk)
 
-with open(sys.argv[1], 'rb') as file:
-    data = file.read()
-    binary_representation = ''.join(format(byte, '08b') for byte in data)
-    # print(binary_representation)
-    chunk_size = 8
-    # print(f'processed {processed_instruction}')
-    while (len(binary_representation) > 8):
-        checkNextChunk()
+def main():
+    with open(sys.argv[1], 'rb') as file:
+        data = file.read()
+        global binary_representation
+        binary_representation = ''.join(format(byte, '08b') for byte in data)
+        print("#############")
+        chunk_size = 8
+        while len(binary_representation) >= 8:
+            checkNextChunk()
 
-    # binary_chunks = [binary_representation[i:i+chunk_size] for i in range(0, len(binary_representation), chunk_size)]
-
-    # for instruction in binary_chunks:
-        # print(f"Instruction: {instruction}")
-        # checkInstruction(instruction)
+if __name__ == "__main__":
+    main()
